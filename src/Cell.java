@@ -30,6 +30,7 @@ public class Cell {
 	 * Initialize the domain, 1 to 9 included
 	 */
 	public void initDomain()	{
+		this.domain = new ArrayList<Integer>();
 		for (int i = 1; i <= 9; i++)
 			this.domain.add(i);
 	}

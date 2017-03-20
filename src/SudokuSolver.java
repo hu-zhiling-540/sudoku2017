@@ -30,6 +30,7 @@ public class SudokuSolver {
 		inputFile = file;
 		grid = new Cell[ROWS][COLS];	// Instantiate the grid
 		readFile(inputFile);
+		printGrid();
 		
 		// naive backtracking
 	}
@@ -69,8 +70,7 @@ public class SudokuSolver {
 
 	
 	public void printGrid() {
-		
-		String output = " ";
+		String output = "";
 		for (int i = 0; i < ROWS; i++)		{
         	for (int j = 0 ; j < COLS; j++)		{
 				output += grid[i][j].val + " ";
