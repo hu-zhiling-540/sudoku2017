@@ -20,9 +20,7 @@ public class SudokuSolver {
 	static long endTime;
 	int nodesVisited = 0;		// number of nodes visited ( the number of variables assigned)
 	
-	ArrayList<Cell> validCells;
-	ArrayList<Cell> invalidCells;
-	ArrayList<Cell> freeVars;
+	protected ArrayList<Cell> freeVars;
 
 	
 	/**
@@ -30,8 +28,7 @@ public class SudokuSolver {
 	 * @param filename
 	 * @throws IOException 
 	 */
-	public SudokuSolver(File file) throws IOException
-	{
+	public SudokuSolver(File file) throws IOException	{
 		inputFile = file;
 		grid = new Cell[ROWS][COLS];	// Instantiate the grid
 		readFile(inputFile);
@@ -47,7 +44,7 @@ public class SudokuSolver {
 	 * @throws IOException
 	 * Ref.:https://docs.oracle.com/javase/tutorial/essential/io/scanning.html
 	 */
-	protected static void readFile(File file) throws IOException	{
+	protected void readFile(File file) throws IOException	{
 		
 		Scanner s = null;
 		try {
@@ -62,37 +59,58 @@ public class SudokuSolver {
                     }
             	}
             }
+            initLists();
             
-        	} finally {
-	            if (s != null) {
-	                s.close();
-	            }
+        }
+		finally {
+			if (s != null) {
+                s.close();
+            }
         }	
+	}
+	
+	protected void initLists()		{
+		
+		freeVars = new ArrayList<Cell>();
+		
+		for (int i = 0; i < ROWS; i++)		{
+        	for (int j = 0 ; j < COLS; j++)		{
+        		if (grid[i][j].val == 0)	{
+        			freeVars.add(grid[i][j]);
+        		}
+        	}
+		}
+		
+		System.out.println("Number of cells to be filled is " + freeVars.size() + " .");
 	}
 	
 	
 	/**
 	 * Backtracking with forward checking
 	 */
-	public void bktrkFwdCkg()	{
-		// start with a cell that has the largest domain
-		Cell toExamine = largestDomain(invalidCells);
+	protected void bktrkFwdCkg()	{
+		// start with a cell that has the smallest domain
+		Cell toExamine = smallestDomain(freeVars);
 		backtracking(toExamine);
 		
 	}
 	
 	
 	/**
-	 * Runs backtracking on a cell
+	 * Runs backtracking recursively
 	 * @param currCell
 	 * @return
 	 */
-	public boolean backtracking(Cell currCell)	{
+	protected boolean backtracking(Cell currCell)	{
+		// base case
+		if (freeVars.size() == 0 && isSolved())
+			return true;
+		
 		freeVars.remove(currCell);
 		for (int i = 0; i < currCell.domain.size(); i++)	{
 			Integer val = currCell.domain.get(0);
 			if (forwardChecking(currCell, val))		{
-				Cell next = largestDomain(freeVars);
+				Cell next = smallestDomain(freeVars);
 				if (backtracking(next))
 					return true;
 			}
@@ -102,13 +120,28 @@ public class SudokuSolver {
 	
 	
 	/**
+	 * If all cells are filled in with a value other than 0
+	 * @return
+	 */
+	protected boolean isSolved() {
+		for (int i = 0; i < ROWS; i++)		{
+        	for (int j = 0 ; j < COLS; j++)		{
+        		if (grid[i][j].val == 0)
+        			return false;
+        	}
+		}
+		return true;
+	}
+
+
+	/**
 	 * If a variable is assigned with certain value,
 	 * deletes value from the domains of the connected variables.
 	 * @param currCell
 	 * @param tempVal
 	 * @return
 	 */
-	public boolean forwardChecking(Cell currCell, Integer tempVal)	{
+	protected boolean forwardChecking(Cell currCell, Integer tempVal)	{
 		
 		// a list to keep track of connected cells, domain of which has been cleared
 		ArrayList<Cell> involved = new ArrayList<Cell>();
@@ -123,18 +156,17 @@ public class SudokuSolver {
 		}
 		
 		// as soon as the domain of any variable becomes empty, return to backtrack
-		if (!checkDomains())	{
+		if (!checkDomains(involved))	{
 			for (int j = 0; j < involved.size(); j++)	{
 				// put value back to the domain
 				involved.get(j).domain.add(tempVal);
 			}
 			return false;	// not valid for the assigned value
 		}
-		
-		
 		return true;
 		
 	}
+	
 	
 	/**
 	 * Finds the least-constraining-value,
@@ -142,16 +174,25 @@ public class SudokuSolver {
 	 * @param list
 	 * @return
 	 */
-	public Cell largestDomain(ArrayList<Cell> list)		{
+	protected Cell mostVariables(ArrayList<Cell> list)		{
+		return null;
+
+	}
+
+
+//	minimum remaining value (MRV) heuristic. 
+//	choosing the best variable to assign next, 
+//	based on the size of its domain. More specifically, 
+//	we choose the cell having the fewest remaining assignable values.
+	
+	protected Cell smallestDomain(ArrayList<Cell> list)		{
 		Cell temp = list.get(0);
 		for (int i = 1; i < list.size(); i++)	{
-			if (list.get(i).domain.size() > temp.domain.size())
+			if (list.get(i).domain.size() < temp.domain.size())
 				temp = list.get(i);
 		}
 		return temp;
 	}
-
-
 	/**
 	 * Checks domains of free cells
 	 * if at least one cell has an empty domain,
@@ -159,9 +200,9 @@ public class SudokuSolver {
 	 * returns false
 	 * @return
 	 */
-	public boolean checkDomains()	{
-		for (int i = 0; i < freeVars.size(); i++)	{
-			if (freeVars.get(i).domain.isEmpty())
+	protected boolean checkDomains(ArrayList<Cell> list)	{
+		for (int i = 0; i < list.size(); i++)	{
+			if (list.get(i).domain.isEmpty())
 				return false;
 		}
 		return true;
@@ -173,7 +214,7 @@ public class SudokuSolver {
 	 * @param cell
 	 * @return
 	 */
-	public boolean checkConnected(Cell main, Cell cell)	{
+	protected boolean checkConnected(Cell main, Cell cell)	{
 		
 		// main cell
 		int c1 = main.col;
@@ -204,7 +245,7 @@ public class SudokuSolver {
 	/**
 	 * Prints the grid out to the console
 	 */
-	public void printGrid() {
+	protected void printGrid() {
 		String output = "";
 		for (int i = 0; i < ROWS; i++)		{
 	    	for (int j = 0 ; j < COLS; j++)		{
@@ -219,7 +260,7 @@ public class SudokuSolver {
 	/**
 	 * Main method that takes arguments from command line
 	 */
-	public static void main(String[] args) throws IOException	{
+	protected static void main(String[] args) throws IOException	{
 		
 		File file = new File(args[0]);
 		SudokuSolver sudoku = new SudokuSolver(file);
