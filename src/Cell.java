@@ -4,7 +4,7 @@ public class Cell {
 	
 	public int col;		// col coordinate
 	public int row;		// row coordinate
-	public int val;		// cell value
+	public Integer val;		// cell value
 	public ArrayList<Integer> domain;
 	
 
@@ -18,7 +18,7 @@ public class Cell {
 		initDomain();
 	}
 	
-	public Cell(int col, int row, int val)	{
+	public Cell(int col, int row, Integer val)	{
 		this.col = col;
 		this.row = row;
 		this.val = val;
