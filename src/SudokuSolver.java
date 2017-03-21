@@ -19,6 +19,9 @@ public class SudokuSolver {
 	static long startTime;
 	static long endTime;
 	int nodesVisited = 0;		// number of nodes visited ( the number of variables assigned)
+	
+	ArrayList<Cell> validCells;
+	ArrayList<Cell> invalidCells;
 	ArrayList<Cell> freeVars;
 
 	
@@ -64,47 +67,104 @@ public class SudokuSolver {
 	            if (s != null) {
 	                s.close();
 	            }
-        }
-		
+        }	
 	}
 	
 	
-
 	/**
-	 * Prints the grid out to the console
+	 * Backtracking with forward checking
 	 */
-	public void printGrid() {
-		String output = "";
-		for (int i = 0; i < ROWS; i++)		{
-        	for (int j = 0 ; j < COLS; j++)		{
-				output += grid[i][j].val + " ";
-			}
-			output += "\n";
-		}
-		System.out.println(output);
-	}
-	
-	// Backtracking with forward checking
-	// i. Whenever a variable X is assigned a value, 
-//	check all variables Y connected to X by a constraint and delete from Y’s domain, 
-//	any value that is inconsistent with the value chosen for X
-	  
-//	ii. As soon as the domain of any variable becomes empty, backtrack
-
-	public void backtraking()	{
+	public void bktrkFwdCkg()	{
+		// start with a cell that has the largest domain
+		Cell toExamine = largestDomain(invalidCells);
+		backtracking(toExamine);
 		
 	}
 	
-	// if a variable is assigned with certain value
-	// deletes value from the domains of the connected variables 
 	
-	public void forwardChecking(Cell currCell, Integer tempVal)	{
+	/**
+	 * Runs backtracking on a cell
+	 * @param currCell
+	 * @return
+	 */
+	public boolean backtracking(Cell currCell)	{
+		freeVars.remove(currCell);
+		for (int i = 0; i < currCell.domain.size(); i++)	{
+			Integer val = currCell.domain.get(0);
+			if (forwardChecking(currCell, val))		{
+				Cell next = largestDomain(freeVars);
+				if (backtracking(next))
+					return true;
+			}
+		}
+		return false;
+	}
+	
+	
+	/**
+	 * If a variable is assigned with certain value,
+	 * deletes value from the domains of the connected variables.
+	 * @param currCell
+	 * @param tempVal
+	 * @return
+	 */
+	public boolean forwardChecking(Cell currCell, Integer tempVal)	{
+		
+		// a list to keep track of connected cells, domain of which has been cleared
+		ArrayList<Cell> involved = new ArrayList<Cell>();
+		
 		for (int i = 0; i < freeVars.size(); i++)	{
 			if (checkConnected(currCell, freeVars.get(i)))	{
-				if (freeVars.get(i).domain.contains(tempVal))
+				if (freeVars.get(i).domain.contains(tempVal))	{
 					freeVars.get(i).domain.remove(tempVal);
+					involved.add(freeVars.get(i));
+				}
 			}
 		}
+		
+		// as soon as the domain of any variable becomes empty, return to backtrack
+		if (!checkDomains())	{
+			for (int j = 0; j < involved.size(); j++)	{
+				// put value back to the domain
+				involved.get(j).domain.add(tempVal);
+			}
+			return false;	// not valid for the assigned value
+		}
+		
+		
+		return true;
+		
+	}
+	
+	/**
+	 * Finds the least-constraining-value,
+	 * which rules out the fewest choices for the connected variables
+	 * @param list
+	 * @return
+	 */
+	public Cell largestDomain(ArrayList<Cell> list)		{
+		Cell temp = list.get(0);
+		for (int i = 1; i < list.size(); i++)	{
+			if (list.get(i).domain.size() > temp.domain.size())
+				temp = list.get(i);
+		}
+		return temp;
+	}
+
+
+	/**
+	 * Checks domains of free cells
+	 * if at least one cell has an empty domain,
+	 * which means it has no value to be assigned to,
+	 * returns false
+	 * @return
+	 */
+	public boolean checkDomains()	{
+		for (int i = 0; i < freeVars.size(); i++)	{
+			if (freeVars.get(i).domain.isEmpty())
+				return false;
+		}
+		return true;
 	}
 	
 	/**
@@ -141,6 +201,21 @@ public class SudokuSolver {
 	}
 	
 	
+	/**
+	 * Prints the grid out to the console
+	 */
+	public void printGrid() {
+		String output = "";
+		for (int i = 0; i < ROWS; i++)		{
+	    	for (int j = 0 ; j < COLS; j++)		{
+				output += grid[i][j].val + " ";
+			}
+			output += "\n";
+		}
+		System.out.println(output);
+	}
+
+
 	/**
 	 * Main method that takes arguments from command line
 	 */
