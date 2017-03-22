@@ -39,7 +39,7 @@ public class SudokuSolver {
 	
 
 	/**
-	 * 
+	 * Reads a file and creates a two-dimensional grid based on the input values
 	 * @param file
 	 * @throws IOException
 	 * Ref.:https://docs.oracle.com/javase/tutorial/essential/io/scanning.html
@@ -59,7 +59,6 @@ public class SudokuSolver {
                     }
             	}
             }
-            initLists();
             
         }
 		finally {
@@ -69,7 +68,8 @@ public class SudokuSolver {
         }	
 	}
 	
-	protected void initLists()		{
+	
+	protected void initList()		{
 		
 		freeVars = new ArrayList<Cell>();
 		
@@ -86,6 +86,59 @@ public class SudokuSolver {
 	
 	
 	/**
+	 * Selects a free variable and branches out on this node with value from its domain.
+	 * If a constraint check fails, the next domain value will be tried.
+	 */
+	protected void naiveBktrk()		{
+		// put all unassigned variables in a list
+        initList();	
+		if (!freeVars.isEmpty())
+			naiveBacktracking(freeVars.get(0));
+	}
+	
+
+	/**
+	 * Recursive call on free variables until a solution is found
+	 * @param currCell
+	 * @return
+	 */
+	protected boolean naiveBacktracking(Cell currCell)	{
+		
+		// base case
+		if (freeVars.size() == 0 && isSolved())
+			return true;
+		
+		freeVars.remove(currCell);
+		for (int i = 0; i < currCell.domain.size(); i++)	{
+			Integer val = currCell.domain.get(0);
+			if (!hasConflict(currCell, val))	{
+				currCell.setValue(val);
+				Cell next = freeVars.get(0);
+				if (naiveBacktracking(next))
+					return true;
+				// else: add the variable back
+				currCell.setValue(0);
+				freeVars.add(0, currCell);
+			}
+		}
+		System.out.println("Naive backtraking failed.");
+		return false;
+		
+	}
+
+	
+		
+	//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+		//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+		/**
 	 * Backtracking with forward checking
 	 */
 	protected void bktrkFwdCkg()	{
@@ -120,21 +173,6 @@ public class SudokuSolver {
 	
 	
 	/**
-	 * If all cells are filled in with a value other than 0
-	 * @return
-	 */
-	protected boolean isSolved() {
-		for (int i = 0; i < ROWS; i++)		{
-        	for (int j = 0 ; j < COLS; j++)		{
-        		if (grid[i][j].val == 0)
-        			return false;
-        	}
-		}
-		return true;
-	}
-
-
-	/**
 	 * If a variable is assigned with certain value,
 	 * deletes value from the domains of the connected variables.
 	 * @param currCell
@@ -147,7 +185,7 @@ public class SudokuSolver {
 		ArrayList<Cell> involved = new ArrayList<Cell>();
 		
 		for (int i = 0; i < freeVars.size(); i++)	{
-			if (checkConnected(currCell, freeVars.get(i)))	{
+			if (isConnected(currCell, freeVars.get(i)))	{
 				if (freeVars.get(i).domain.contains(tempVal))	{
 					freeVars.get(i).domain.remove(tempVal);
 					involved.add(freeVars.get(i));
@@ -168,6 +206,130 @@ public class SudokuSolver {
 	}
 	
 	
+	//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+		//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+		/**
+	 * Checks if any connected cell has the same value
+	 * @param cell
+	 * @param val
+	 * @return
+	 */
+	protected boolean hasConflict(Cell cell, Integer val)	{
+		// same col
+		for (int i = 0; i < ROWS; i++)	{
+			if (grid[cell.col][i].val==val)
+				return false;
+		}
+		
+		// same row
+		for (int i = 0; i < COLS; i++)	{
+			if (grid[i][cell.row].val==val)
+				return false;
+		}
+		
+		// same block
+		for (int i = (cell.col/3)*3; i < (cell.col/3)*3 + 3; i++)	{
+			for (int j = (cell.row/3)*3; j < (cell.row/3)*3 + 3; j++)
+				if ( grid[i][j].val == val)
+					return false;
+		}
+		return true;
+	}
+
+
+		/**
+		 * Checks two cells passed in if they are connected
+		 * @param main
+		 * @param cell
+		 * @return
+		 */
+		protected boolean isConnected(Cell main, Cell cell)	{
+			
+			// main cell
+			int c1 = main.col;
+			int r1 = main.row;
+			
+			// cell to be checked
+			int c2 = cell.col;
+			int r2 = cell.row;
+			
+			
+			// same block
+			for (int i = (c1/3)*3; i < (c1/3)*3 + 3; i++)	{
+				for (int j = (r1/3)*3; j < (r1/3)*3 + 3; j++)
+					if ( i == c2 && j == r2)
+						return true;
+			}
+			
+			// same row or same col
+			if (c1 == c2|| r1 == r2)
+				return true;
+			
+			// else
+			return false;
+			
+		}
+
+
+	/**
+	 * If all cells are filled in with a value other than 0
+	 * @return
+	 */
+	protected boolean isSolved() {
+		for (int i = 0; i < ROWS; i++)		{
+	    	for (int j = 0 ; j < COLS; j++)		{
+	    		if (grid[i][j].val == 0)
+	    			return false;
+	    	}
+		}
+		return true;
+	}
+
+
+	//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+		//	minimum remaining value (MRV) heuristic. 
+	//	choosing the best variable to assign next, 
+	//	based on the size of its domain. More specifically, 
+	//	we choose the cell having the fewest remaining assignable values.
+		
+	/**
+	 * Checks domains of free cells
+	 * if at least one cell has an empty domain,
+	 * which means it has no value to be assigned to,
+	 * returns false
+	 * @return
+	 */
+	protected boolean checkDomains(ArrayList<Cell> list)	{
+		for (int i = 0; i < list.size(); i++)	{
+			if (list.get(i).domain.isEmpty())
+				return false;
+		}
+		return true;
+	}
+
+
+	protected Cell smallestDomain(ArrayList<Cell> list)		{
+		Cell temp = list.get(0);
+		for (int i = 1; i < list.size(); i++)	{
+			if (list.get(i).domain.size() < temp.domain.size())
+				temp = list.get(i);
+		}
+		return temp;
+	}
+
+
 	/**
 	 * Finds the least-constraining-value,
 	 * which rules out the fewest choices for the connected variables
@@ -184,63 +346,6 @@ public class SudokuSolver {
 //	choosing the best variable to assign next, 
 //	based on the size of its domain. More specifically, 
 //	we choose the cell having the fewest remaining assignable values.
-	
-	protected Cell smallestDomain(ArrayList<Cell> list)		{
-		Cell temp = list.get(0);
-		for (int i = 1; i < list.size(); i++)	{
-			if (list.get(i).domain.size() < temp.domain.size())
-				temp = list.get(i);
-		}
-		return temp;
-	}
-	/**
-	 * Checks domains of free cells
-	 * if at least one cell has an empty domain,
-	 * which means it has no value to be assigned to,
-	 * returns false
-	 * @return
-	 */
-	protected boolean checkDomains(ArrayList<Cell> list)	{
-		for (int i = 0; i < list.size(); i++)	{
-			if (list.get(i).domain.isEmpty())
-				return false;
-		}
-		return true;
-	}
-	
-	/**
-	 * Checks two cells passed in if they are connected
-	 * @param main
-	 * @param cell
-	 * @return
-	 */
-	protected boolean checkConnected(Cell main, Cell cell)	{
-		
-		// main cell
-		int c1 = main.col;
-		int r1 = main.row;
-		
-		// cell to be checked
-		int c2 = cell.col;
-		int r2 = cell.row;
-		
-		
-		// same block
-		for (int i = (c1/3)*3; i < (c1/3)*3 + 3; i++)	{
-			for (int j = (r1/3)*3; j < (r1/3)*3 + 3; j++)
-				if ( i == c2 && j == r2)
-					return true;
-		}
-		
-		// same row or same col
-		if (c1 == c2|| r1 == r2)
-			return true;
-		
-		// else
-		return false;
-		
-	}
-	
 	
 	/**
 	 * Prints the grid out to the console

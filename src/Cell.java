@@ -41,9 +41,12 @@ public class Cell {
 	 * @param val
 	 */
 	public void setValue(int val)	{
-		this.val = val;
+		this.val = Integer.valueOf(val);
 	}
 	
+	public void setValue(Integer val)	{
+		this.val = val;
+	}
 	
 	/**
 	 * Getter for the domain variable
