@@ -11,7 +11,7 @@ public class SudokuSolver {
 	protected final static int ROWS = 9;
 	protected final static int COLS = 9;
 	
-	protected static Cell[][] grid;	// two dimensional grid
+	protected static Cell[][] grid;	// two dimensional grid: R, C
 	
 	File inputFile;
 	
@@ -35,6 +35,8 @@ public class SudokuSolver {
 		printGrid();
 		
 		// naive backtracking
+		naiveBktrk();
+		printGrid();
 	}
 	
 
@@ -92,8 +94,10 @@ public class SudokuSolver {
 	protected void naiveBktrk()		{
 		// put all unassigned variables in a list
         initList();	
-		if (!freeVars.isEmpty())
+		if (!freeVars.isEmpty())	{
 			naiveBacktracking(freeVars.get(0));
+			freeVars.remove(0);
+		}
 	}
 	
 
@@ -105,39 +109,67 @@ public class SudokuSolver {
 	protected boolean naiveBacktracking(Cell currCell)	{
 		
 		// base case
-		if (freeVars.size() == 0 && isSolved())
+		if (isSolved())
 			return true;
 		
-		freeVars.remove(currCell);
 		for (int i = 0; i < currCell.domain.size(); i++)	{
-			Integer val = currCell.domain.get(0);
+			
+			Integer val = currCell.domain.get(i);
+			
+			// first check if there no connected variables already assigned with this value
 			if (!hasConflict(currCell, val))	{
-				currCell.setValue(val);
-				Cell next = freeVars.get(0);
+				
+				currCell.setValue(val);		// set temporary value
+				
+				// based on this assignment: check the next variable
+				if (freeVars.isEmpty())
+					return true;	// finish all the assignments
+				
+				Cell next = freeVars.get(0);	// pop up a free variable from the list
+				freeVars.remove(0);
+				
 				if (naiveBacktracking(next))
 					return true;
-				// else: add the variable back
-				currCell.setValue(0);
-				freeVars.add(0, currCell);
+				
+				freeVars.add(0, next);
 			}
+			
 		}
 		System.out.println("Naive backtraking failed.");
 		return false;
 		
 	}
 
-	
 		
-	//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
+	/**
+	 * Checks if any connected cell has the same value
+	 * @param cell
+	 * @param val
+	 * @return
+	 */
+	protected boolean hasConflict(Cell cell, Integer val)	{
+		// same col
+		for (int i = 0; i < ROWS; i++)	{
+			if (grid[i][cell.col].val.equals(val))
+				return true;
+		}
 		
-		//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
+		// same row
+		for (int i = 0; i < COLS; i++)	{
+			if (grid[cell.row][i].val.equals(val))
+				return true;
+		}
 		
+		// same block
+		for (int i = (cell.row/3)*3; i < (cell.row/3)*3 + 3; i++)	{
+			for (int j = (cell.col/3)*3; j < (cell.col/3)*3 + 3; j++)
+				if ( grid[i][j].val.equals(val))
+					return true;
+		}
+		return false;
+	}
+
+
 		/**
 	 * Backtracking with forward checking
 	 */
@@ -204,79 +236,39 @@ public class SudokuSolver {
 		return true;
 		
 	}
-	
-	
-	//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
+
 		
-		//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
-		
-		/**
-	 * Checks if any connected cell has the same value
+	/**
+	 * Checks two cells passed in if they are connected
+	 * @param main
 	 * @param cell
-	 * @param val
 	 * @return
 	 */
-	protected boolean hasConflict(Cell cell, Integer val)	{
-		// same col
-		for (int i = 0; i < ROWS; i++)	{
-			if (grid[cell.col][i].val==val)
-				return false;
-		}
+	protected boolean isConnected(Cell main, Cell cell)	{
 		
-		// same row
-		for (int i = 0; i < COLS; i++)	{
-			if (grid[i][cell.row].val==val)
-				return false;
-		}
+		// main cell
+		int r1 = main.row;
+		int c1 = main.col;
+		
+		// cell to be checked
+		int r2 = cell.row;
+		int c2 = cell.col;			
 		
 		// same block
-		for (int i = (cell.col/3)*3; i < (cell.col/3)*3 + 3; i++)	{
-			for (int j = (cell.row/3)*3; j < (cell.row/3)*3 + 3; j++)
-				if ( grid[i][j].val == val)
-					return false;
+		for (int i = (r1/3)*3; i < (r1/3)*3 + 3; i++)	{
+			for (int j = (c1/3)*3; j < (c1/3)*3 + 3; j++)
+				if ( i == r2 && j == c2)
+					return true;
 		}
-		return true;
+		
+		// same row or same col
+		if (c1 == c2|| r1 == r2)
+			return true;
+		
+		// else
+		return false;
+		
 	}
-
-
-		/**
-		 * Checks two cells passed in if they are connected
-		 * @param main
-		 * @param cell
-		 * @return
-		 */
-		protected boolean isConnected(Cell main, Cell cell)	{
-			
-			// main cell
-			int c1 = main.col;
-			int r1 = main.row;
-			
-			// cell to be checked
-			int c2 = cell.col;
-			int r2 = cell.row;
-			
-			
-			// same block
-			for (int i = (c1/3)*3; i < (c1/3)*3 + 3; i++)	{
-				for (int j = (r1/3)*3; j < (r1/3)*3 + 3; j++)
-					if ( i == c2 && j == r2)
-						return true;
-			}
-			
-			// same row or same col
-			if (c1 == c2|| r1 == r2)
-				return true;
-			
-			// else
-			return false;
-			
-		}
 
 
 	/**
@@ -293,16 +285,6 @@ public class SudokuSolver {
 		return true;
 	}
 
-
-	//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
-		
-		//	minimum remaining value (MRV) heuristic. 
-	//	choosing the best variable to assign next, 
-	//	based on the size of its domain. More specifically, 
-	//	we choose the cell having the fewest remaining assignable values.
 		
 	/**
 	 * Checks domains of free cells
@@ -342,11 +324,6 @@ public class SudokuSolver {
 	}
 
 
-//	minimum remaining value (MRV) heuristic. 
-//	choosing the best variable to assign next, 
-//	based on the size of its domain. More specifically, 
-//	we choose the cell having the fewest remaining assignable values.
-	
 	/**
 	 * Prints the grid out to the console
 	 */
@@ -365,9 +342,10 @@ public class SudokuSolver {
 	/**
 	 * Main method that takes arguments from command line
 	 */
-	protected static void main(String[] args) throws IOException	{
+	public static void main(String[] args) throws IOException	{
 		
-		File file = new File(args[0]);
+//		File file = new File(args[0]);
+		File file = new File("TestCase1.txt");
 		SudokuSolver sudoku = new SudokuSolver(file);
         
 	}  
