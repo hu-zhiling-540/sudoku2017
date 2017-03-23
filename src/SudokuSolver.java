@@ -4,6 +4,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Stack;
 
 
 public class SudokuSolver {
@@ -57,12 +58,11 @@ public class SudokuSolver {
             		if (s.hasNext()) {
                     	String str = s.next(); 
                     	grid[i][j] = new Cell(i, j, Integer.parseInt(str));
-//                      char[] myChar = str.toCharArray();
                     }
             	}
             }
-            
         }
+		
 		finally {
 			if (s != null) {
                 s.close();
@@ -70,14 +70,14 @@ public class SudokuSolver {
         }	
 	}
 	
-	
+
 	protected void initList()		{
 		
 		freeVars = new ArrayList<Cell>();
 		
 		for (int i = 0; i < ROWS; i++)		{
         	for (int j = 0 ; j < COLS; j++)		{
-        		if (grid[i][j].val == 0)	{
+        		if (grid[i][j].val.equals(0))	{
         			freeVars.add(grid[i][j]);
         		}
         	}
@@ -95,8 +95,9 @@ public class SudokuSolver {
 		// put all unassigned variables in a list
         initList();	
 		if (!freeVars.isEmpty())	{
-			naiveBacktracking(freeVars.get(0));
-			freeVars.remove(0);
+			Cell head = freeVars.remove(0);
+			naiveBacktracking(head);
+			
 		}
 	}
 	
@@ -108,34 +109,36 @@ public class SudokuSolver {
 	 */
 	protected boolean naiveBacktracking(Cell currCell)	{
 		
-		// base case
+		// if no 0 entry in the grid
 		if (isSolved())
 			return true;
 		
+		// loop through the domain
 		for (int i = 0; i < currCell.domain.size(); i++)	{
 			
 			Integer val = currCell.domain.get(i);
 			
-			// first check if there no connected variables already assigned with this value
+			// check if no connected variables already assigned with the same value
 			if (!hasConflict(currCell, val))	{
 				
-				currCell.setValue(val);		// set temporary value
+				grid[currCell.row][currCell.col].setValue(val);		// set temporary value
 				
 				// based on this assignment: check the next variable
 				if (freeVars.isEmpty())
-					return true;	// finish all the assignments
+					return true;			// by the time all the assignments are finished
 				
-				Cell next = freeVars.get(0);	// pop up a free variable from the list
+				// else: pop up a free variable from the list
+				Cell next = freeVars.get(0);
 				freeVars.remove(0);
 				
 				if (naiveBacktracking(next))
 					return true;
 				
+				// else: naive is wrong after, so we go back");
+				grid[currCell.row][currCell.col].setValue(0);
 				freeVars.add(0, next);
-			}
-			
+				}	
 		}
-		System.out.println("Naive backtraking failed.");
 		return false;
 		
 	}
@@ -148,24 +151,29 @@ public class SudokuSolver {
 	 * @return
 	 */
 	protected boolean hasConflict(Cell cell, Integer val)	{
+		
 		// same col
 		for (int i = 0; i < ROWS; i++)	{
-			if (grid[i][cell.col].val.equals(val))
+			if (grid[i][cell.col].val.equals(val))	{
 				return true;
+			}
 		}
 		
 		// same row
-		for (int i = 0; i < COLS; i++)	{
-			if (grid[cell.row][i].val.equals(val))
+		for (int j = 0; j < COLS; j++)	{
+			if (grid[cell.row][j].val.equals(val))
 				return true;
 		}
 		
 		// same block
-		for (int i = (cell.row/3)*3; i < (cell.row/3)*3 + 3; i++)	{
-			for (int j = (cell.col/3)*3; j < (cell.col/3)*3 + 3; j++)
-				if ( grid[i][j].val.equals(val))
+		int block_r = (cell.row/3)*3;
+		int block_c = (cell.col/3)*3;
+		for (int i = 0; i < 3 ; i++)	{
+			for (int j = 0; j < 3; j++)
+				if ( grid[i+block_r][j+block_c].val.equals(val))
 					return true;
 		}
+		
 		return false;
 	}
 
@@ -278,7 +286,7 @@ public class SudokuSolver {
 	protected boolean isSolved() {
 		for (int i = 0; i < ROWS; i++)		{
 	    	for (int j = 0 ; j < COLS; j++)		{
-	    		if (grid[i][j].val == 0)
+	    		if (grid[i][j].val.equals(0))
 	    			return false;
 	    	}
 		}
