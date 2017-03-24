@@ -36,7 +36,11 @@ public class SudokuSolver {
 		printGrid();
 		
 		// naive backtracking
-		naiveBktrk();
+//		naiveBktrk();
+		
+		// backtracking with forward checking
+		bktrkFwdCkg();
+		
 		printGrid();
 	}
 	
@@ -97,7 +101,6 @@ public class SudokuSolver {
 		if (!freeVars.isEmpty())	{
 			Cell head = freeVars.remove(0);
 			naiveBacktracking(head);
-			
 		}
 	}
 	
@@ -134,13 +137,12 @@ public class SudokuSolver {
 				if (naiveBacktracking(next))
 					return true;
 				
-				// else: naive is wrong after, so we go back");
+				// else: naive is wrong after, so we go back
 				grid[currCell.row][currCell.col].setValue(0);
 				freeVars.add(0, next);
 				}	
 		}
-		return false;
-		
+		return false;	
 	}
 
 		
@@ -178,14 +180,16 @@ public class SudokuSolver {
 	}
 
 
-		/**
+	/**
 	 * Backtracking with forward checking
 	 */
 	protected void bktrkFwdCkg()	{
-		// start with a cell that has the smallest domain
-		Cell toExamine = smallestDomain(freeVars);
-		backtracking(toExamine);
-		
+		// put all unassigned variables in a list
+        initList();	
+		if (!freeVars.isEmpty())	{
+			Cell head = freeVars.get(0);
+			backtracking(head);
+		}
 	}
 	
 	
@@ -195,22 +199,54 @@ public class SudokuSolver {
 	 * @return
 	 */
 	protected boolean backtracking(Cell currCell)	{
-		// base case
-		if (freeVars.size() == 0 && isSolved())
-			return true;
 		
-		freeVars.remove(currCell);
+		// if no 0 entry in the grid, it is solved
+		if (isSolved())
+			return true;
+	
+		freeVars.remove(0);
+		
 		for (int i = 0; i < currCell.domain.size(); i++)	{
-			Integer val = currCell.domain.get(0);
-			if (forwardChecking(currCell, val))		{
-				Cell next = smallestDomain(freeVars);
-				if (backtracking(next))
-					return true;
+			
+			Integer val = currCell.domain.get(i);
+			
+			// if connected cells don't contain the same value
+			if (!hasConflict(currCell, val))		{
+				
+				grid[currCell.row][currCell.col].setValue(val);
+				
+				// base case
+				if (freeVars.isEmpty())
+					return true;			// by the time all the assignments are finished
+				
+				if (forwardChecking(currCell, val))		{
+					// else: pop up a free variable from the list
+					Cell next = freeVars.get(0);
+					
+					if (backtracking(next))
+						return true;
+					else	{
+						freeVars.add(0, next);
+						// put value back to domains
+						undo(currCell,val);
+					}
+				}
 			}
+			grid[currCell.row][currCell.col].setValue(0);
+			// move on the next possible value in the domain
 		}
+		
 		return false;
 	}
 	
+	protected void undo(Cell cell, Integer val)	{
+		for (int i = 0; i < freeVars.size(); i++)	{
+			if( isConnected(cell, freeVars.get(i)))
+				grid[freeVars.get(i).row][freeVars.get(i).col].domain.add(val);
+		}
+
+		
+	}
 	
 	/**
 	 * If a variable is assigned with certain value,
@@ -225,7 +261,7 @@ public class SudokuSolver {
 		ArrayList<Cell> involved = new ArrayList<Cell>();
 		
 		for (int i = 0; i < freeVars.size(); i++)	{
-			if (isConnected(currCell, freeVars.get(i)))	{
+			if (isConnected(currCell, freeVars.get(i)))		{
 				if (freeVars.get(i).domain.contains(tempVal))	{
 					freeVars.get(i).domain.remove(tempVal);
 					involved.add(freeVars.get(i));
@@ -234,18 +270,26 @@ public class SudokuSolver {
 		}
 		
 		// as soon as the domain of any variable becomes empty, return to backtrack
-		if (!checkDomains(involved))	{
-			for (int j = 0; j < involved.size(); j++)	{
+		if (emptyDomain(involved))	{
+			for (int i = 0; i < involved.size(); i++)	{
 				// put value back to the domain
-				involved.get(j).domain.add(tempVal);
+				int index = findCellIndex(freeVars, involved.get(i));
+				if ( index != -1)
+					freeVars.get(index).domain.add(tempVal);
 			}
-			return false;	// not valid for the assigned value
+			return false;		// not valid for the assigned value
 		}
+		
 		return true;
-		
 	}
-
-		
+	
+	protected int findCellIndex(ArrayList<Cell> list, Cell cell)	{
+		for (int i = 0; i < list.size(); i++ )	{
+			if (list.get(i).row == cell.row && list.get(i).col == cell.col)
+				return i;
+		}
+		return -1;
+	}
 	/**
 	 * Checks two cells passed in if they are connected
 	 * @param main
@@ -262,18 +306,17 @@ public class SudokuSolver {
 		int r2 = cell.row;
 		int c2 = cell.col;			
 		
-		// same block
-		for (int i = (r1/3)*3; i < (r1/3)*3 + 3; i++)	{
-			for (int j = (c1/3)*3; j < (c1/3)*3 + 3; j++)
-				if ( i == r2 && j == c2)
-					return true;
-		}
-		
 		// same row or same col
 		if (c1 == c2|| r1 == r2)
 			return true;
 		
-		// else
+		// same block
+		for (int i = (r1/3)*3; i < (r1/3)*3 + 3; i++)	{
+			for (int j = (c1/3)*3; j < (c1/3)*3 + 3; j++)
+				if ( i == r2 && j == c2 && !( r1 == r2 && c1 == c2 ))		// don't count self in
+					return true;
+		}
+		
 		return false;
 		
 	}
@@ -301,12 +344,12 @@ public class SudokuSolver {
 	 * returns false
 	 * @return
 	 */
-	protected boolean checkDomains(ArrayList<Cell> list)	{
+	protected boolean emptyDomain(ArrayList<Cell> list)	{
 		for (int i = 0; i < list.size(); i++)	{
 			if (list.get(i).domain.isEmpty())
-				return false;
+				return true;
 		}
-		return true;
+		return false;
 	}
 
 
@@ -339,13 +382,22 @@ public class SudokuSolver {
 		String output = "";
 		for (int i = 0; i < ROWS; i++)		{
 	    	for (int j = 0 ; j < COLS; j++)		{
-				output += grid[i][j].val + " ";
+	    		if ( j%3 == 0 && j != 0)
+	    			output += "| ";
+	    		output +=grid[i][j].val + " ";
 			}
-			output += "\n";
+	    	
+	    	if ( i == 2 || i == 5)	{
+	    		output += "\n";
+	    		output += "- - -   - - -   - - - ";
+	    	}
+	    	
+	    	output += "\n";
 		}
 		System.out.println(output);
 	}
 
+	
 
 	/**
 	 * Main method that takes arguments from command line
@@ -354,8 +406,40 @@ public class SudokuSolver {
 		
 //		File file = new File(args[0]);
 		File file = new File("TestCase1.txt");
+		
 		SudokuSolver sudoku = new SudokuSolver(file);
-        
+		if (args.length == 1)	{
+			System.out.println("Naive Backtracking");
+			SudokuSolver puzzle = new SudokuSolver(file);
+			
+			puzzle.naiveBktrk();
+			puzzle.printGrid();
+		}
+			
+		else if (args.length == 2){
+			if(args[1].equals("FC")){
+				System.out.println("Backtracking with Forward Checking");
+				SudokuSolver puzzle = new SudokuSolver(file);
+				
+				puzzle.bktrkFwdCkg();
+				puzzle.printGrid();
+			}
+			else
+				System.out.println("Argument is not legal.");
+		}
+		
+		else if (args.length == 3)
+			if(args[1].equals("FC")&& args[2].equals("MRV")
+					|| args[2].equals("FC")&& args[1].equals("MRV")){
+				System.out.println("Backtracking with Forward Checking");
+				SudokuSolver puzzle = new SudokuSolver(file);
+				
+//				puzzle.bktrkFwdCkg();
+				puzzle.printGrid();
+			}
+			else
+				System.out.println("Argument is not legal.");
+		
 	}  
 	
 }
