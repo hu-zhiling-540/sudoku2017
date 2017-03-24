@@ -28,20 +28,11 @@ public class SudokuSolver {
 	 * @throws IOException 
 	 */
 	public SudokuSolver(File file) throws IOException	{
+		
 		inputFile = file;
 		grid = new Cell[ROWS][COLS];	// Instantiate the grid
 		readFile(inputFile);
 		printGrid();
-		
-		// naive backtracking
-//		naiveBktrk();
-		
-		// backtracking with forward checking
-//		bktrkFwdCkg();
-		
-//		bktrkFwdCkg_MRV();
-		
-//		printGrid();
 	}
 	
 
@@ -54,6 +45,7 @@ public class SudokuSolver {
 	protected void readFile(File file) throws IOException	{
 		
 		Scanner s = null;
+		
 		try {
             s = new Scanner(new BufferedReader(new FileReader(file)));
             
@@ -75,6 +67,9 @@ public class SudokuSolver {
 	}
 	
 
+	/**
+	 * Initializes a new ArrayList for free variables
+	 */
 	protected void initList()		{
 		
 		freeVars = new ArrayList<Cell>();
@@ -111,6 +106,8 @@ public class SudokuSolver {
 	 * @return
 	 */
 	protected boolean naiveBacktracking(Cell currCell)	{
+		
+		numBacktracks++;		// for tracking
 		
 		// if no 0 entry in the grid
 		if (isSolved())
@@ -246,6 +243,7 @@ public class SudokuSolver {
 		return true;
 	}
 
+	
 	/**
 	 * Backtracking with forward checking
 	 */
@@ -254,7 +252,7 @@ public class SudokuSolver {
         initList();	
 		if (!freeVars.isEmpty())	{
 			Cell head = smallestDomain(freeVars);
-			backtracking(head);
+			backtracking_MRV(head);
 		}
 	}
 	
@@ -293,7 +291,7 @@ public class SudokuSolver {
 					// else: pop up a free variable from the list
 					Cell next = smallestDomain(freeVars);
 					
-					if (backtracking(next))
+					if (backtracking_MRV(next))
 						return true;
 					else	{
 						grid[next.row][next.col].setValue(0);
@@ -308,6 +306,7 @@ public class SudokuSolver {
 		return false;
 	}
 
+	
 	/**
 	 * Helper method to put value back to domains
 	 * @param cell
@@ -315,11 +314,10 @@ public class SudokuSolver {
 	 */
 	protected void undo(Cell cell, Integer val)	{
 		for (int i = 0; i < freeVars.size(); i++)	{
-			if( isConnected(cell, freeVars.get(i)))
-				grid[freeVars.get(i).row][freeVars.get(i).col].domain.add(val);
+			if( isConnected(cell, freeVars.get(i)))	{
+				freeVars.get(i).domain.add(val);
+			}
 		}
-
-		
 	}
 	
 	
@@ -488,6 +486,7 @@ public class SudokuSolver {
 
 	
 
+	
 	/**
 	 * Main method that takes arguments from command line
 	 */
@@ -532,7 +531,7 @@ public class SudokuSolver {
 		else if (args.length == 3)
 			if(args[1].equals("FC")&& args[2].equals("MRV")
 					|| args[2].equals("FC")&& args[1].equals("MRV")){
-				System.out.println("Backtracking with Forward Checking");
+				System.out.println("Backtracking with Forward Checking with MRV heuristic");
 				long program_start = System.nanoTime(); 
 				SudokuSolver sudoku = new SudokuSolver(file);
 				long search_start =  System.nanoTime();
