@@ -8,11 +8,11 @@ Formulate the Sudoku problem as a single CSP by giving the variables their domai
   - Backtracking + Forward Checking
   - Backtracking + Forward Checking with MRV
 
-## To be improved (expected: Apr.10, 2017)
+## To be improved (expected: Apr.21, 2017)
 
  - Backtracking + Forward Checking with MRV
 
-## To be implemented (expected: Apr.20, 2017)
+## To be implemented (expected: Apr.27, 2017)
 
   - Backtracking + Forward Checking + LCV
   - Backtracking + AC3
